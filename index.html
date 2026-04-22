@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRAM Inventário</title>
+<style>
+body { font-family: Arial; margin: 10px; background: #f4f4f4; }
+h1 { text-align: center; }
+input, button { padding: 10px; margin: 5px 0; width: 100%; font-size: 16px; }
+.card { background: white; padding: 10px; margin: 10px 0; border-radius: 10px; }
+button { border: none; border-radius: 8px; }
+.btn { display: flex; gap: 5px; }
+.emprestar { background: orange; color: white; }
+.devolver { background: green; color: white; }
+</style>
+</head>
+<body>
+
+<h1>🔧 CRAM Inventário</h1>
+
+<input id="user" placeholder="Quem está a usar">
+<input id="numero" placeholder="Número">
+<input id="nome" placeholder="Nome">
+<input id="quantidade" type="number" placeholder="Quantidade">
+<input id="localizacao" placeholder="Localização">
+
+<button onclick="add()">Adicionar ferramenta</button>
+
+<div id="lista"></div>
+
+<script>
+async function load() {
+  const res = await fetch("/api/ferramentas");
+  const data = await res.json();
+
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  data.forEach(f => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    const estado = f.data_emprestimo ? "🔴 Emprestado" : "🟢 Disponível";
+
+    div.innerHTML = `
+      <b>${f.nome}</b><br>
+      Nº: ${f.numero}<br>
+      📍 ${f.localizacao}<br>
+      ${estado}<br>
+      ${f.responsavel ? "👤 " + f.responsavel : ""}
+      <div class="btn">
+        <button class="emprestar" onclick="emprestar(${f.id})">Emprestar</button>
+        <button class="devolver" onclick="devolver(${f.id})">Devolver</button>
+      </div>
+    `;
+
+    lista.appendChild(div);
+  });
+}
+
+async function add() {
+  await fetch("/api/ferramentas", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      numero: numero.value,
+      nome: nome.value,
+      quantidade: quantidade.value,
+      localizacao: localizacao.value
+    })
+  });
+  load();
+}
+
+async function emprestar(id) {
+  const nome = document.getElementById("user").value;
+  if (!nome) { alert("Escreve o nome primeiro!"); return; }
+
+  await fetch("/api/emprestar/" + id, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ responsavel: nome })
+  });
+  load();
+}
+
+async function devolver(id) {
+  await fetch("/api/devolver/" + id, { method: "POST" });
+  load();
+}
+
+load();
+</script>
+
+</body>
+</html>
